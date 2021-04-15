@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apigee-config
+  namespace: apigee-system
+data:
+  mgmt_api: http://xx.xx.xx.xx:8080/v1
+  username: opdk@apigee.com
+  password: Secret123
+  org_name: demo
+  env_name: test
