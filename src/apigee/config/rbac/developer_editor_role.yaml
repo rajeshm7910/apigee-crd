@@ -1,0 +1,24 @@
+# permissions for end users to edit developers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-editor-role
+rules:
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers/status
+  verbs:
+  - get

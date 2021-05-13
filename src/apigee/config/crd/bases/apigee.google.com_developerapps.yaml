@@ -1,0 +1,114 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: developerapps.apigee.google.com
+spec:
+  group: apigee.google.com
+  names:
+    kind: DeveloperApp
+    listKind: DeveloperAppList
+    plural: developerapps
+    singular: developerapp
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: DeveloperApp is the Schema for the developerapps API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DeveloperAppSpec defines the desired state of DeveloperApp
+          properties:
+            attributes:
+              items:
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+                type: object
+              type: array
+            callbackUrl:
+              type: string
+            credentials:
+              items:
+                properties:
+                  apiProducts:
+                    items:
+                      properties:
+                        apiproduct:
+                          type: string
+                        status:
+                          type: string
+                      type: object
+                    type: array
+                  attributes:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      type: object
+                    type: array
+                  consumerKey:
+                    type: string
+                  consumerSecret:
+                    type: string
+                  expiresAt:
+                    type: integer
+                  scopes:
+                    items:
+                      type: string
+                    type: array
+                  status:
+                    type: string
+                required:
+                - attributes
+                type: object
+              type: array
+            developer_email:
+              description: Foo is an example field of DeveloperApp. Edit DeveloperApp_types.go
+                to remove/update
+              type: string
+            name:
+              type: string
+            scopes:
+              items:
+                type: string
+              type: array
+            status:
+              type: string
+          required:
+          - attributes
+          type: object
+        status:
+          description: DeveloperAppStatus defines the observed state of DeveloperApp
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

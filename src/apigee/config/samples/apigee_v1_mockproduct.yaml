@@ -1,0 +1,24 @@
+apiVersion: apigee.google.com/v1
+kind: ApiProduct
+metadata:
+  name: mock-product
+spec:
+  # Add fields here
+  apiResources:
+  -  "/"
+  -  "/*"
+  name: mock-roduct
+  approvalType: auto
+  description: Mock Product
+  displayName: Mock Product
+  attributes:
+  - name: access
+    value: public
+  environments:
+  - test
+  proxies:
+  - mock-api
+ # scopes: 
+ # quota : 1
+ # quotaInterval : 1
+ # quotaTimeUnit : minute

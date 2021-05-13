@@ -4,4 +4,13 @@ resources:
 - group: apigee
   kind: ApiProduct
   version: v1
+- group: apigee
+  kind: Developer
+  version: v1
+- group: apigee
+  kind: DeveloperApp
+  version: v1
+- group: apigee
+  kind: ApiProxy
+  version: v1
 version: "2"

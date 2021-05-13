@@ -1,0 +1,24 @@
+# permissions for end users to edit apiproxies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: apiproxy-editor-role
+rules:
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - apiproxies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - apiproxies/status
+  verbs:
+  - get

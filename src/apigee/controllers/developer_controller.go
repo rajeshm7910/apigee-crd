@@ -1,9 +1,24 @@
+/*
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 
 	apigeev1 "apigee.com/m/api/v1"
 
@@ -17,23 +32,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-// ApiProductReconciler reconciles a ApiProduct object
-type ApiProductReconciler struct {
+// DeveloperReconciler reconciles a Developer object
+type DeveloperReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=apigee.my.domain,resources=apiproducts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apigee.my.domain,resources=apiproducts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apigee.google.com,resources=developers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apigee.google.com,resources=developers/status,verbs=get;update;patch
 
-func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *DeveloperReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("apiproduct", req.NamespacedName)
 
@@ -61,11 +77,11 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	base64_auth := "Basic " + encoded
 	log.V(1).Info("Auth  " + base64_auth)
 
-	url := mgmt_api + "/organizations/" + org_name + "/apiproducts"
+	url := mgmt_api + "/organizations/" + org_name + "/developers"
 
-	var apiProductinstance apigeev1.ApiProduct
+	var instance apigeev1.Developer
 
-	if err := r.Client.Get(ctx, req.NamespacedName, &apiProductinstance); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
 		//log.Error(err, "unable to fetch API Product")
 		// we'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
@@ -75,28 +91,28 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	log.V(0).Info("Setting Finalizers")
 	// name of our custom finalizer
-	myFinalizerName := "apiproducts.finalizers.apigee.kubebuilder.io"
+	myFinalizerName := "developer.finalizers.apigee.kubebuilder.io"
 
 	// examine DeletionTimestamp to determine if object is under deletion
-	if apiProductinstance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
-		if !containsString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName) {
-			apiProductinstance.ObjectMeta.Finalizers = append(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Client.Update(context.Background(), &apiProductinstance); err != nil {
+		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// The object is being deleted
-		if containsString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName) {
+		if containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
-			log.V(0).Info("Name of Spec=" + apiProductinstance.Spec.Name)
-			deleteApiProduct(apiProductinstance.Spec.Name, url, base64_auth, log)
+			log.V(0).Info("Name of Spec=" + instance.Spec.Email)
+			deleteDeveloper(instance.Spec.Email, url, base64_auth, log)
 			// remove our finalizer from the list and update it.
-			apiProductinstance.ObjectMeta.Finalizers = removeString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Client.Update(context.Background(), &apiProductinstance); err != nil {
+			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -105,27 +121,23 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, nil
 	}
 
-	pushdata := parseInputAndCreateJSON(apiProductinstance, log)
+	pushdata := parseDeveloperInstanceAndCreateJSON(instance, log)
 	data := []byte(pushdata)
-	createApiProduct(apiProductinstance.Spec.Name, data, url, base64_auth, log)
-
-	//instance := apigeev1.ApiProduct{}
-	//if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
-	//	return ctrl.Result{}, client.IgnoreNotFound(err)
-	//}
+	createDeveloper(instance.Spec.Email, data, url, base64_auth, log)
 
 	log.V(0).Info("Finishing the Prouct update")
 
 	return ctrl.Result{}, nil
+
 }
 
-func (r *ApiProductReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DeveloperReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apigeev1.ApiProduct{}).
+		For(&apigeev1.Developer{}).
 		Complete(r)
 }
 
-func parseInputAndCreateJSON(instance apigeev1.ApiProduct, log logr.Logger) string {
+func parseDeveloperInstanceAndCreateJSON(instance apigeev1.Developer, log logr.Logger) string {
 
 	log.V(0).Info("In Parse Function")
 	data, _ := json.Marshal(instance.Spec)
@@ -133,28 +145,7 @@ func parseInputAndCreateJSON(instance apigeev1.ApiProduct, log logr.Logger) stri
 	return pushdata
 
 }
-
-// Helper functions to check and remove string from a slice of strings.
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
-}
-
-func deleteApiProduct(name string, url string, base64_auth string, log logr.Logger) {
+func deleteDeveloper(name string, url string, base64_auth string, log logr.Logger) {
 
 	url = url + "/" + name
 
@@ -185,7 +176,7 @@ func deleteApiProduct(name string, url string, base64_auth string, log logr.Logg
 	log.V(1).Info("Deleting Product Apigee")
 }
 
-func checkApiProduct(name string, url string, base64_auth string, log logr.Logger) bool {
+func checkDeveloper(name string, url string, base64_auth string, log logr.Logger) bool {
 
 	url = url + "/" + name
 	req1, err1 := http.NewRequest("GET", url, nil)
@@ -223,7 +214,7 @@ func checkApiProduct(name string, url string, base64_auth string, log logr.Logge
 	return false
 }
 
-func createApiProduct(name string, data []byte, url string, base64_auth string, log logr.Logger) {
+func createDeveloper(name string, data []byte, url string, base64_auth string, log logr.Logger) {
 
 	log.V(1).Info("calling http")
 	method := "POST"

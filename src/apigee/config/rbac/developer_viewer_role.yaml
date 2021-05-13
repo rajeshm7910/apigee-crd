@@ -1,0 +1,20 @@
+# permissions for end users to view developers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-viewer-role
+rules:
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers/status
+  verbs:
+  - get
