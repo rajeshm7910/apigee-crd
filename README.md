@@ -11,12 +11,63 @@ This projects publishes bunch of Custom Resource Definitions for Apigee resource
 
 ### Getting Started
 
- 1. Apply API Product CRD 
- ```kubectl apply -f crds/ApiProductCRD.yaml```
- 2. Edit samples/config/opdk.yaml and set your properties
- 3. Apply Configuration
+
+ 1. For OPDK, Apply Configuration
  ```kubectl apply -f samples/config/opdk.yaml```
- 5. To Test - 
+
+ 2. For Hybrid or ApigeeX
+
+ Create a secret from the service account
+  ```
+ kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config secret/amer-cs-hybrid-demo32-org-admin created
+ ```
+ Apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
+
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: apigee-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apigee-hybrid-config
+  namespace: apigee-config
+data:
+  mgmt_api: https://apigee.googleapis.com/v1
+  service_account_secret : amer-cs-hybrid-demo32-org-admin
+  org_name: amer-cs-hybrid-demo32
+  env_name: test
+  type: apigeex
+  auth: Bearer
+
+```
+
+Apply the configuration
+```kubectl apply -f samples/config/hybrid.yaml```
+
+
+ 3.  Testing the APIs
+
+ Apply API Product CRD 
+ ```kubectl apply -f crds/ApiProductCRD.yaml```
+
+Check the metadata section of the sample. You can specify the env in the metadata which will override the default environment.  The config section should map to the config-map created above.
+
+ ```
+apiVersion: apigee.google.com/v1
+kind: ApiProduct
+metadata:
+  name: my-samples
+  env : test
+  config: apigee-hybrid-config
+ ```
+
+ 4. To Test - 
  ```kubectl apply -f samples/apigee_v1_apiproduct.yaml```
 
 	```
