@@ -7,16 +7,11 @@ import (
 
 	apigeev1 "apigee.com/m/api/v1"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -39,33 +34,9 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	log.V(1).Info("Starting the Prouct update")
 
-	var configMap corev1.ConfigMap
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-config", Namespace: "apigee-config"}, &configMap); err != nil && apierrs.IsNotFound(err) {
-		log.V(0).Info("Error in calling configmap")
-	}
+	var instance apigeev1.ApiProduct
 
-	//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
-	mgmt_api := configMap.Data["mgmt_api"]
-	env_name := configMap.Data["env_name"]
-	org_name := configMap.Data["org_name"]
-	username := configMap.Data["username"]
-	password := configMap.Data["password"]
-
-	log.V(1).Info("Mgmt API " + mgmt_api)
-	log.V(1).Info("Env  " + env_name)
-	log.V(1).Info("Org  " + org_name)
-	log.V(1).Info("user  " + username)
-	//log.V(1).Info("Password  " + password)
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	base64_auth := "Basic " + encoded
-	log.V(1).Info("Auth  " + base64_auth)
-
-	url := mgmt_api + "/organizations/" + org_name + "/apiproducts"
-
-	var apiProductinstance apigeev1.ApiProduct
-
-	if err := r.Client.Get(ctx, req.NamespacedName, &apiProductinstance); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
 		//log.Error(err, "unable to fetch API Product")
 		// we'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
@@ -73,30 +44,42 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
+	config, _, _ := getMetadata(annotatedData, log)
+	baseUrl, authString, org, env := getAuth(r.Client, log, config, "apigee-config")
+	log.V(1).Info("Env " + env)
+
+	url := baseUrl + "/organizations/" + org + "/apiproducts"
+
 	log.V(0).Info("Setting Finalizers")
 	// name of our custom finalizer
 	myFinalizerName := "apiproducts.finalizers.apigee.kubebuilder.io"
 
 	// examine DeletionTimestamp to determine if object is under deletion
-	if apiProductinstance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
-		if !containsString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName) {
-			apiProductinstance.ObjectMeta.Finalizers = append(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Client.Update(context.Background(), &apiProductinstance); err != nil {
+		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
+
+			pushdata := parseInputAndCreateJSON(instance, log)
+			data := []byte(pushdata)
+			createApiProduct(instance.Spec.Name, data, url, authString, log)
+
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// The object is being deleted
-		if containsString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName) {
+		if containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
-			log.V(0).Info("Name of Spec=" + apiProductinstance.Spec.Name)
-			deleteApiProduct(apiProductinstance.Spec.Name, url, base64_auth, log)
+			log.V(0).Info("Name of Spec=" + instance.Spec.Name)
+			deleteApiProduct(instance.Spec.Name, url, authString, log)
 			// remove our finalizer from the list and update it.
-			apiProductinstance.ObjectMeta.Finalizers = removeString(apiProductinstance.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Client.Update(context.Background(), &apiProductinstance); err != nil {
+			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, myFinalizerName)
+			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -104,10 +87,6 @@ func (r *ApiProductReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
-
-	pushdata := parseInputAndCreateJSON(apiProductinstance, log)
-	data := []byte(pushdata)
-	createApiProduct(apiProductinstance.Spec.Name, data, url, base64_auth, log)
 
 	//instance := apigeev1.ApiProduct{}
 	//if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
@@ -134,27 +113,7 @@ func parseInputAndCreateJSON(instance apigeev1.ApiProduct, log logr.Logger) stri
 
 }
 
-// Helper functions to check and remove string from a slice of strings.
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
-}
-
-func deleteApiProduct(name string, url string, base64_auth string, log logr.Logger) {
+func deleteApiProduct(name string, url string, authString string, log logr.Logger) {
 
 	url = url + "/" + name
 
@@ -165,7 +124,7 @@ func deleteApiProduct(name string, url string, base64_auth string, log logr.Logg
 
 	// Set headers
 	req2.Header.Set("Content-Type", "application/json")
-	req2.Header.Set("Authorization", base64_auth)
+	req2.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -185,7 +144,7 @@ func deleteApiProduct(name string, url string, base64_auth string, log logr.Logg
 	log.V(1).Info("Deleting Product Apigee")
 }
 
-func checkApiProduct(name string, url string, base64_auth string, log logr.Logger) bool {
+func checkApiProduct(name string, url string, authString string, log logr.Logger) bool {
 
 	url = url + "/" + name
 	req1, err1 := http.NewRequest("GET", url, nil)
@@ -197,7 +156,7 @@ func checkApiProduct(name string, url string, base64_auth string, log logr.Logge
 
 	// Set headers
 	req1.Header.Set("Content-Type", "application/json")
-	req1.Header.Set("Authorization", base64_auth)
+	req1.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -223,11 +182,11 @@ func checkApiProduct(name string, url string, base64_auth string, log logr.Logge
 	return false
 }
 
-func createApiProduct(name string, data []byte, url string, base64_auth string, log logr.Logger) {
+func createApiProduct(name string, data []byte, url string, authString string, log logr.Logger) {
 
 	log.V(1).Info("calling http")
 	method := "POST"
-	if checkApiProduct(name, url, base64_auth, log) {
+	if checkApiProduct(name, url, authString, log) {
 		method = "PUT"
 		url = url + "/" + name
 	}
@@ -241,7 +200,7 @@ func createApiProduct(name string, data []byte, url string, base64_auth string, 
 
 	// Set headers
 	req1.Header.Set("Content-Type", "application/json")
-	req1.Header.Set("Authorization", base64_auth)
+	req1.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}

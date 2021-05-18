@@ -12,10 +12,11 @@ metadata:
   name: apigee-config
   namespace: apigee-config
 data:
-  mgmt_api: http://xx.xx.xx.xx:8080/v1
-  username: opdk@apigee.com
-  password: Secret123
+  mgmt_api: https://api.enterprise.apigee.com/v1
+  username:
+  password:
+  token_url: 
   org_name: demo
   env_name: test
   type: legacy
-  auth: Basic
+  auth: Bearer

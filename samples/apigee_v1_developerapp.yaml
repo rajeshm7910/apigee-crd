@@ -1,0 +1,26 @@
+apiVersion: apigee.google.com/v1
+kind: DeveloperApp
+metadata:
+  name: rajeshm-app
+  env : test
+  config: apigee-hybrid-config
+spec:
+  # Add fields here
+  developer_email: rajeshm7910@gmail.com
+  name: myapp
+  scopes: []
+  status: approved
+  attributes:
+  - name: ADMIN_EMAIL
+    value: admin@example.com
+  - name: DisplayName
+    value: My App
+  credentials:
+  - apiProducts:
+    - apiproduct : http-bin
+      status : approved
+    expiresAt: -1
+    attributes: []
+    scopes: []
+    status: approved
+

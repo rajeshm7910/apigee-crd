@@ -1,27 +1,23 @@
 apiVersion: apigee.google.com/v1
 kind: ApiProduct
 metadata:
-  name: my-samples
-  env : test
-  config: apigee-hybrid-config
+  name: mock-product
 spec:
   # Add fields here
   apiResources:
   -  "/"
   -  "/*"
-  name: my-api-product
+  name: mock-roduct
   approvalType: auto
-  description: API Product demo CRD
-  displayName: API Product demo CRD
+  description: Mock Product
+  displayName: Mock Product
   attributes:
   - name: access
     value: public
-  - name: apigee-remote-service-targets
-    value: httpbin.default.svc.cluster.local
   environments:
   - test
   proxies:
-  - remote-service
+  - mock-api
  # scopes: 
  # quota : 1
  # quotaInterval : 1

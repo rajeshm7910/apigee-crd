@@ -22,16 +22,11 @@ import (
 
 	apigeev1 "apigee.com/m/api/v1"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -55,29 +50,31 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 	log.V(1).Info("Starting the Developer App update")
 
-	var configMap corev1.ConfigMap
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-config", Namespace: "apigee-config"}, &configMap); err != nil && apierrs.IsNotFound(err) {
-		log.V(0).Info("Error in calling configmap")
-	}
+	/*
+			var configMap corev1.ConfigMap
+			if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-config", Namespace: "apigee-config"}, &configMap); err != nil && apierrs.IsNotFound(err) {
+				log.V(0).Info("Error in calling configmap")
+			}
 
-	//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
-	mgmt_api := configMap.Data["mgmt_api"]
-	env_name := configMap.Data["env_name"]
-	org_name := configMap.Data["org_name"]
-	username := configMap.Data["username"]
-	password := configMap.Data["password"]
+			//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
+			mgmt_api := configMap.Data["mgmt_api"]
+			env_name := configMap.Data["env_name"]
+			org_name := configMap.Data["org_name"]
+			username := configMap.Data["username"]
+			password := configMap.Data["password"]
 
-	log.V(1).Info("Mgmt API " + mgmt_api)
-	log.V(1).Info("Env  " + env_name)
-	log.V(1).Info("Org  " + org_name)
-	log.V(1).Info("user  " + username)
-	//log.V(1).Info("Password  " + password)
+			log.V(1).Info("Mgmt API " + mgmt_api)
+			log.V(1).Info("Env  " + env_name)
+			log.V(1).Info("Org  " + org_name)
+			log.V(1).Info("user  " + username)
+			//log.V(1).Info("Password  " + password)
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	base64_auth := "Basic " + encoded
-	log.V(1).Info("Auth  " + base64_auth)
+			encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+			base64_auth := "Basic " + encoded
+			log.V(1).Info("Auth  " + base64_auth)
 
-	url := mgmt_api + "/organizations/" + org_name + "/developers/"
+		url := mgmt_api + "/organizations/" + org_name + "/developers/"
+	*/
 
 	var instance apigeev1.DeveloperApp
 
@@ -89,6 +86,12 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
+	config, _, _ := getMetadata(annotatedData, log)
+	baseUrl, authString, org, env := getAuth(r.Client, log, config, "apigee-config")
+	log.V(1).Info("Env " + env)
+
+	url := baseUrl + "/organizations/" + org + "/developers/"
 	developer_email := instance.Spec.DeveloperEmail
 	url = url + developer_email + "/apps"
 
@@ -104,6 +107,10 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
 		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
+			pushdata := parseDeveloperAppContent(instance, log)
+			data := []byte(pushdata)
+			createDeveloperApp(instance.Spec.Name, data, url, authString, log)
+
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
@@ -114,7 +121,7 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		if containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
 			log.V(0).Info("Name of Spec=" + instance.Spec.Name)
-			deleteDeveloperApp(instance.Spec.Name, url, base64_auth, log)
+			deleteDeveloperApp(instance.Spec.Name, url, authString, log)
 			// remove our finalizer from the list and update it.
 			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
@@ -124,10 +131,6 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
-
-	pushdata := parseDeveloperAppContent(instance, log)
-	data := []byte(pushdata)
-	createDeveloperApp(instance.Spec.Name, data, url, base64_auth, log)
 
 	log.V(0).Info("Finishing the Api DeveloperApp update")
 
@@ -149,7 +152,7 @@ func parseDeveloperAppContent(instance apigeev1.DeveloperApp, log logr.Logger) s
 	return pushdata
 
 }
-func deleteDeveloperApp(name string, url string, base64_auth string, log logr.Logger) {
+func deleteDeveloperApp(name string, url string, authString string, log logr.Logger) {
 
 	url = url + "/" + name
 
@@ -160,7 +163,7 @@ func deleteDeveloperApp(name string, url string, base64_auth string, log logr.Lo
 
 	// Set headers
 	req2.Header.Set("Content-Type", "application/json")
-	req2.Header.Set("Authorization", base64_auth)
+	req2.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -180,7 +183,7 @@ func deleteDeveloperApp(name string, url string, base64_auth string, log logr.Lo
 	log.V(1).Info("Deleting DeveloperApp Apigee")
 }
 
-func checkDeveloperApp(name string, url string, base64_auth string, log logr.Logger) bool {
+func checkDeveloperApp(name string, url string, authString string, log logr.Logger) bool {
 
 	url = url + "/" + name
 	req1, err1 := http.NewRequest("GET", url, nil)
@@ -192,7 +195,7 @@ func checkDeveloperApp(name string, url string, base64_auth string, log logr.Log
 
 	// Set headers
 	req1.Header.Set("Content-Type", "application/json")
-	req1.Header.Set("Authorization", base64_auth)
+	req1.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -218,11 +221,11 @@ func checkDeveloperApp(name string, url string, base64_auth string, log logr.Log
 	return false
 }
 
-func createDeveloperApp(name string, data []byte, url string, base64_auth string, log logr.Logger) {
+func createDeveloperApp(name string, data []byte, url string, authString string, log logr.Logger) {
 
 	log.V(1).Info("calling http")
 	method := "POST"
-	if checkApiProduct(name, url, base64_auth, log) {
+	if checkApiProduct(name, url, authString, log) {
 		method = "PUT"
 		url = url + "/" + name
 	}
@@ -236,7 +239,7 @@ func createDeveloperApp(name string, data []byte, url string, base64_auth string
 
 	// Set headers
 	req1.Header.Set("Content-Type", "application/json")
-	req1.Header.Set("Authorization", base64_auth)
+	req1.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}

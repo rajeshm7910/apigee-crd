@@ -1,0 +1,13 @@
+apiVersion: apigee.google.com/v1
+kind: Developer
+metadata:
+  name: developer-sample
+  env : test
+  config: apigee-hybrid-config
+spec:
+  # Add fields here
+  email: rajeshmi@google.com
+  firstName: Rajesh
+  lastName: Mishra
+  userName : rajeshmi
+  #attributes

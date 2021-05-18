@@ -9,13 +9,12 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: apigee-config
+  name: apigee-hybrid-config
   namespace: apigee-config
 data:
-  mgmt_api: http://xx.xx.xx.xx:8080/v1
-  username: opdk@apigee.com
-  password: Secret123
-  org_name: demo
+  mgmt_api: https://apigee.googleapis.com/v1
+  service_account_secret : amer-cs-hybrid-demo32-org-admin
+  org_name: amer-cs-hybrid-demo32
   env_name: test
-  type: legacy
-  auth: Basic
+  type: apigeex
+  auth: Bearer

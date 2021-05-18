@@ -1,0 +1,10 @@
+apiVersion: apigee.google.com/v1
+kind: ApiProxy
+metadata:
+  name: mock-api
+  env : test
+  config: apigee-hybrid-config
+spec:
+  # Add fields here
+  name: mock-api
+  zipurl: gs://opdk/mock.zip

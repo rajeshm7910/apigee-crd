@@ -18,11 +18,9 @@ package controllers
 
 import (
 	"archive/zip"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -30,19 +28,13 @@ import (
 
 	apigeev1 "apigee.com/m/api/v1"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -67,31 +59,6 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log.V(1).Info("Starting the Proxies update")
 
-	var configMap corev1.ConfigMap
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-config", Namespace: "apigee-config"}, &configMap); err != nil && apierrs.IsNotFound(err) {
-		log.V(0).Info("Error in calling configmap")
-	}
-
-	//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
-	mgmt_api := configMap.Data["mgmt_api"]
-	env_name := configMap.Data["env_name"]
-	org_name := configMap.Data["org_name"]
-	username := configMap.Data["username"]
-	password := configMap.Data["password"]
-
-	log.V(1).Info("Mgmt API " + mgmt_api)
-	log.V(1).Info("Env  " + env_name)
-	log.V(1).Info("Org  " + org_name)
-	log.V(1).Info("user  " + username)
-	//log.V(1).Info("Password  " + password)
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	base64_auth := "Basic " + encoded
-	log.V(1).Info("Auth  " + base64_auth)
-
-	url := mgmt_api + "/organizations/" + org_name + "/apis"
-	log.V(1).Info("url  " + url)
-
 	var instance apigeev1.ApiProxy
 
 	if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
@@ -101,6 +68,13 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// on deleted requests.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
+	config, _, _ := getMetadata(annotatedData, log)
+	baseUrl, authString, org, env := getAuth(r.Client, log, config, "apigee-config")
+	log.V(1).Info("Env " + env)
+
+	url := baseUrl + "/organizations/" + org + "/apis"
 
 	log.V(0).Info("Setting Finalizers")
 	// name of our custom finalizer
@@ -114,10 +88,10 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			log.V(0).Info("Updating Finalizers")
-			rev := createApiProxy(instance.Spec.Name, instance.Spec.ZipUrl, url, base64_auth, log)
+			rev := createApiProxy(instance.Spec.Name, instance.Spec.ZipUrl, url, authString, log)
 			instance.Status.DeploymentState = ""
 			instance.Status.Revision = rev
-			DeployApiProxy(instance.Spec.Name, rev, true, mgmt_api, org_name, env_name, base64_auth, log)
+			DeployApiProxy(instance.Spec.Name, rev, true, baseUrl, org, env, authString, log)
 			instance.SetLabels(map[string]string{"revision": strconv.Itoa(rev)})
 			instance.Status.DeploymentState = "deployed"
 
@@ -133,10 +107,12 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.V(0).Info("Name of Spec=" + instance.Spec.Name)
 			labels := instance.GetLabels()
 			rev, _ := strconv.Atoi(labels["revision"])
+			log.V(0).Info("Calling undeploy")
+			UnDeployApiProxy(instance.Spec.Name, rev, false, baseUrl, org, env, authString, log)
 
-			UnDeployApiProxy(instance.Spec.Name, rev, true, mgmt_api, org_name, env_name, base64_auth, log)
 			instance.Status.DeploymentState = ""
-			deleteApiProxy(instance.Spec.Name, url, base64_auth, log)
+			log.V(0).Info("Calling delete")
+			deleteApiProxy(instance.Spec.Name, url, authString, log)
 			// remove our finalizer from the list and update it.
 			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
@@ -148,11 +124,7 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	//createApiProxy(instance.Spec.Name, instance.Spec.ZipUrl, url, base64_auth, log)
-
 	log.V(0).Info("Finishing API Proxy Reconciliation")
-
-	// your logic here
 
 	return ctrl.Result{}, nil
 }
@@ -172,9 +144,10 @@ func parseProxyInput(instance apigeev1.ApiProxy, log logr.Logger) string {
 
 }
 
-func deleteApiProxy(name string, url string, base64_auth string, log logr.Logger) {
+func deleteApiProxy(name string, url string, authString string, log logr.Logger) {
 
 	url = url + "/" + name
+
 	req2, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -182,7 +155,7 @@ func deleteApiProxy(name string, url string, base64_auth string, log logr.Logger
 
 	// Set headers
 	req2.Header.Set("Content-Type", "application/json")
-	req2.Header.Set("Authorization", base64_auth)
+	req2.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -199,10 +172,10 @@ func deleteApiProxy(name string, url string, base64_auth string, log logr.Logger
 		fmt.Println(err)
 	}
 	fmt.Printf("%s\n", respBody)
-	log.V(1).Info("Deleting Product Apigee")
+	log.V(1).Info("Deleting Apigee Proxy")
 }
 
-func checkApiProxy(name string, url string, base64_auth string, log logr.Logger) bool {
+func checkApiProxy(name string, url string, authString string, log logr.Logger) bool {
 
 	url = url + "/" + name
 	req1, err1 := http.NewRequest("GET", url, nil)
@@ -214,7 +187,7 @@ func checkApiProxy(name string, url string, base64_auth string, log logr.Logger)
 
 	// Set headers
 	req1.Header.Set("Content-Type", "application/json")
-	req1.Header.Set("Authorization", base64_auth)
+	req1.Header.Set("Authorization", authString)
 
 	// Set client timeout
 	client := &http.Client{Timeout: time.Second * 10}
@@ -235,12 +208,12 @@ func checkApiProxy(name string, url string, base64_auth string, log logr.Logger)
 		return true
 	}
 
-	log.V(0).Info("returning false")
+	log.V(0).Info("Returning false")
 
 	return false
 }
 
-func createApiProxy(name string, zipurl string, Baseurl string, base64_auth string, log logr.Logger) (revision int) {
+func createApiProxy(name string, zipurl string, Baseurl string, authString string, log logr.Logger) (revision int) {
 
 	log.V(1).Info("calling http")
 	u, _ := url.Parse(zipurl)
@@ -252,8 +225,10 @@ func createApiProxy(name string, zipurl string, Baseurl string, base64_auth stri
 
 	data, _ := downloadFile(bucket, proxy)
 	//log.V(1).Info(fmt.Sprintf("data = %+v", data))
-	WriteByteArrayToFile("/tmp/temp00.zip", false, data, log)
-	rev, _ := ImportBundle(name, name, "/tmp/temp00.zip", Baseurl, base64_auth, log)
+	fileName := "/tmp/" + proxy
+
+	WriteByteArrayToFile(fileName, false, data, log)
+	rev, _ := ImportBundle(name, name, fileName, Baseurl, authString, log)
 	log.V(0).Info(fmt.Sprintf("Revision = %+v", rev))
 
 	return rev
@@ -317,7 +292,7 @@ func WriteByteArrayToFile(exportFile string, fileAppend bool, payload []byte, lo
 }
 
 //ImportBundle imports a sharedflow or api proxy bundle
-func ImportBundle(entityType string, name string, bundlePath string, BaseURL string, base64_auth string, log logr.Logger) (revision int, err1 error) {
+func ImportBundle(entityType string, name string, bundlePath string, BaseURL string, authString string, log logr.Logger) (revision int, err1 error) {
 	err := ReadBundle(bundlePath)
 	if err != nil {
 		log.Error(err, "Reading Bundle")
@@ -332,7 +307,7 @@ func ImportBundle(entityType string, name string, bundlePath string, BaseURL str
 	}
 
 	u, _ := url.Parse(BaseURL)
-	u.Path = path.Join(u.Path, entityType)
+	//u.Path = path.Join(u.Path, entityType)
 	log.V(0).Info("Path =" + u.Path)
 
 	q := u.Query()
@@ -340,7 +315,7 @@ func ImportBundle(entityType string, name string, bundlePath string, BaseURL str
 	q.Set("action", "import")
 	u.RawQuery = q.Encode()
 
-	respBody, err := PostHttpOctet(true, false, u.String(), bundlePath, base64_auth, log)
+	respBody, err := PostHttpOctet(true, false, u.String(), bundlePath, authString, log)
 	PrettyPrint(respBody)
 	var result map[string]interface{}
 	json.Unmarshal(respBody, &result)
@@ -384,86 +359,8 @@ func ReadBundle(filename string) error {
 	return nil
 }
 
-func PostHttpOctet(print bool, update bool, url string, proxyName string, base64_auth string, log logr.Logger) (respBody []byte, err error) {
-	file, _ := os.Open(proxyName)
-	defer file.Close()
-
-	var req *http.Request
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("proxy", proxyName)
-	if err != nil {
-		log.Error(err, "Post1")
-		return nil, err
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		log.Error(err, "Post2")
-		return nil, err
-	}
-
-	err = writer.Close()
-	if err != nil {
-		log.Error(err, "Post3")
-		return nil, err
-	}
-
-	client := &http.Client{Timeout: time.Second * 10}
-
-	if err != nil {
-		log.Error(err, "Post4")
-		return nil, err
-	}
-
-	if !update {
-		req, err = http.NewRequest("POST", url, body)
-	} else {
-		req, err = http.NewRequest("PUT", url, body)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", base64_auth)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	resp, err := client.Do(req)
-
-	if err != nil {
-		log.Error(err, "After sending request")
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	respBody, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	} else if resp.StatusCode != 201 {
-		log.V(0).Info(fmt.Sprintf("status Code = %+v", resp.StatusCode))
-		log.Error(err, "Post5")
-		return nil, errors.New("error in response")
-	}
-	if print {
-		return respBody, PrettyPrint(respBody)
-	}
-
-	return respBody, nil
-}
-
-//PrettyPrint method prints formatted json
-func PrettyPrint(body []byte) error {
-	var prettyJSON bytes.Buffer
-	err := json.Indent(&prettyJSON, body, "", "\t")
-	if err != nil {
-		return err
-	}
-	fmt.Println(prettyJSON.String())
-	return nil
-}
-
 //DeployProxy
-func DeployApiProxy(name string, revision int, overrides bool, BaseURL string, org string, env string, base64_auth string, log logr.Logger) (respBody []byte, err error) {
+func DeployApiProxy(name string, revision int, overrides bool, BaseURL string, org string, env string, authString string, log logr.Logger) (respBody []byte, err error) {
 	u, _ := url.Parse(BaseURL)
 	if overrides {
 		q := u.Query()
@@ -473,12 +370,12 @@ func DeployApiProxy(name string, revision int, overrides bool, BaseURL string, o
 	u.Path = path.Join(u.Path, "organizations", org, "environments", env,
 		"apis", name, "revisions", strconv.Itoa(revision), "deployments")
 	log.V(0).Info(u.String())
-	respBody, err = HttpClient(true, base64_auth, log, u.String(), "")
+	respBody, err = HttpClient(true, authString, log, u.String(), "")
 	return respBody, err
 }
 
-func UnDeployApiProxy(name string, revision int, overrides bool, BaseURL string, org string, env string, base64_auth string, log logr.Logger) (respBody []byte, err error) {
-	u, _ := url.Parse(BaseURL)
+func UnDeployApiProxy(name string, revision int, overrides bool, baseURL string, org string, env string, authString string, log logr.Logger) (respBody []byte, err error) {
+	u, _ := url.Parse(baseURL)
 	if overrides {
 		q := u.Query()
 		q.Set("override", "true")
@@ -487,83 +384,6 @@ func UnDeployApiProxy(name string, revision int, overrides bool, BaseURL string,
 	u.Path = path.Join(u.Path, "organizations", org, "environments", env,
 		"apis", name, "revisions", strconv.Itoa(revision), "deployments")
 	log.V(0).Info(u.String())
-	respBody, err = HttpClient(true, base64_auth, log, u.String(), "", "DELETE")
+	respBody, err = HttpClient(true, authString, log, u.String(), "", "DELETE")
 	return respBody, err
-}
-
-func HttpClient(print bool, base64_auth string, log logr.Logger, params ...string) (respBody []byte, err error) {
-	// The first parameter instructs whether the output should be printed
-	// The second parameter is url. If only one parameter is sent, assume GET
-	// The third parameter is the payload. The two parameters are sent, assume POST
-	// THe fourth parameter is the method. If three parameters are sent, assume method in param
-	//The fifth parameter is content type
-	var req *http.Request
-	contentType := "application/x-www-form-urlencoded"
-
-	client := &http.Client{Timeout: time.Second * 10}
-
-	switch paramLen := len(params); paramLen {
-	case 1:
-		log.V(0).Info("Before making request GET")
-		req, err = http.NewRequest("GET", params[0], nil)
-	case 2:
-		log.V(0).Info("Before making request POST")
-		req, err = http.NewRequest("POST", params[0], bytes.NewBuffer([]byte(params[1])))
-	case 3:
-		if req, err = getRequest(params); err != nil {
-			return nil, err
-		}
-	case 4:
-		if req, err = getRequest(params); err != nil {
-			return nil, err
-		}
-		contentType = params[3]
-	default:
-		return nil, errors.New("unsupported method")
-	}
-
-	req.Header.Add("Authorization", base64_auth)
-	req.Header.Set("Content-Type", contentType)
-
-	log.V(0).Info("Before making request")
-
-	resp, err := client.Do(req)
-
-	log.V(0).Info("After making request")
-
-	if resp != nil {
-		log.V(0).Info("resp is not null")
-		defer resp.Body.Close()
-	}
-
-	respBody, err = ioutil.ReadAll(resp.Body)
-	log.V(0).Info("Getting Response body")
-	log.V(0).Info(fmt.Sprintf("resp status code = %+v", resp.StatusCode))
-	//PrettyPrint(respBody)
-
-	if err != nil {
-		log.Error(err, "Error in reading")
-		return nil, err
-	} else if resp.StatusCode > 299 {
-		return nil, errors.New("error in response")
-	}
-	if print && contentType == "application/json" {
-		return respBody, PrettyPrint(respBody)
-	}
-	return respBody, nil
-}
-
-func getRequest(params []string) (req *http.Request, err error) {
-	if params[2] == "DELETE" {
-		req, err = http.NewRequest("DELETE", params[0], nil)
-	} else if params[2] == "PUT" {
-		req, err = http.NewRequest("PUT", params[0], bytes.NewBuffer([]byte(params[1])))
-	} else if params[2] == "PATCH" {
-		req, err = http.NewRequest("PATCH", params[0], bytes.NewBuffer([]byte(params[1])))
-	} else if params[2] == "POST" {
-		req, err = http.NewRequest("POST", params[0], bytes.NewBuffer([]byte(params[1])))
-	} else {
-		return nil, errors.New("unsupported method")
-	}
-	return req, err
 }
