@@ -46,7 +46,7 @@ undeploy: manifests
 # Generale CRD controller in the configured Kubernetes cluster in ~/.kube/config
 generate-crd: manifests
 	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default  > apiproductCRD.yaml
+	kustomize build config/default  > ../../crds/apigee-all.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen

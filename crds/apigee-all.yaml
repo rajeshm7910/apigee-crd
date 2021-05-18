@@ -1,0 +1,599 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: apigee-system
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: apiproducts.apigee.google.com
+spec:
+  group: apigee.google.com
+  names:
+    kind: ApiProduct
+    listKind: ApiProductList
+    plural: apiproducts
+    singular: apiproduct
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: ApiProduct is the Schema for the apiproducts API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ApiProductSpec defines the desired state of ApiProduct
+          properties:
+            apiResources:
+              items:
+                type: string
+              type: array
+            approvalType:
+              type: string
+            attributes:
+              items:
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+                type: object
+              type: array
+            description:
+              type: string
+            displayName:
+              type: string
+            environments:
+              items:
+                type: string
+              type: array
+            name:
+              type: string
+            proxies:
+              items:
+                type: string
+              type: array
+            quota:
+              type: string
+            quotaInterval:
+              type: string
+            quotaTimeUnit:
+              type: string
+            scopes:
+              items:
+                type: string
+              type: array
+          required:
+          - attributes
+          type: object
+        status:
+          description: ApiProductStatus defines the observed state of ApiProduct
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: apiproxies.apigee.google.com
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.deploymentState
+    description: Deployment Status
+    name: DEPLOYMENT
+    type: string
+  - JSONPath: .status.revision
+    description: Revision
+    name: REVISION
+    type: integer
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  group: apigee.google.com
+  names:
+    kind: ApiProxy
+    listKind: ApiProxyList
+    plural: apiproxies
+    singular: apiproxy
+  scope: Namespaced
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            name:
+              description: Foo is an example field of ApiProxy. Edit ApiProxy_types.go
+                to remove/update
+              type: string
+            zipurl:
+              type: string
+          type: object
+        status:
+          description: ApiProxyStatus defines the observed state of ApiProxy
+          properties:
+            deploymentState:
+              type: string
+            revision:
+              type: integer
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: developerapps.apigee.google.com
+spec:
+  group: apigee.google.com
+  names:
+    kind: DeveloperApp
+    listKind: DeveloperAppList
+    plural: developerapps
+    singular: developerapp
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: DeveloperApp is the Schema for the developerapps API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DeveloperAppSpec defines the desired state of DeveloperApp
+          properties:
+            attributes:
+              items:
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+                type: object
+              type: array
+            callbackUrl:
+              type: string
+            credentials:
+              items:
+                properties:
+                  apiProducts:
+                    items:
+                      properties:
+                        apiproduct:
+                          type: string
+                        status:
+                          type: string
+                      type: object
+                    type: array
+                  attributes:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      type: object
+                    type: array
+                  consumerKey:
+                    type: string
+                  consumerSecret:
+                    type: string
+                  expiresAt:
+                    type: integer
+                  scopes:
+                    items:
+                      type: string
+                    type: array
+                  status:
+                    type: string
+                required:
+                - attributes
+                type: object
+              type: array
+            developer_email:
+              description: Foo is an example field of DeveloperApp. Edit DeveloperApp_types.go
+                to remove/update
+              type: string
+            name:
+              type: string
+            scopes:
+              items:
+                type: string
+              type: array
+            status:
+              type: string
+          required:
+          - attributes
+          type: object
+        status:
+          description: DeveloperAppStatus defines the observed state of DeveloperApp
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: developers.apigee.google.com
+spec:
+  group: apigee.google.com
+  names:
+    kind: Developer
+    listKind: DeveloperList
+    plural: developers
+    singular: developer
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: Developer is the Schema for the developers API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DeveloperSpec defines the desired state of Developer
+          properties:
+            attributes:
+              items:
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+                type: object
+              type: array
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            userName:
+              type: string
+          type: object
+        status:
+          description: DeveloperStatus defines the observed state of Developer
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apigee-leader-election-role
+  namespace: apigee-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: apigee-manager-role
+rules:
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - apiproxies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - apiproxies/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developerapps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developerapps/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.google.com
+  resources:
+  - developers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apigee.my.domain
+  resources:
+  - apiproducts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apigee.my.domain
+  resources:
+  - apiproducts/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: apigee-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: apigee-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: apigee-leader-election-rolebinding
+  namespace: apigee-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: apigee-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: apigee-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apigee-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: apigee-manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: apigee-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apigee-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: apigee-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: apigee-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: apigee-controller-manager-metrics-service
+  namespace: apigee-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: apigee-controller-manager
+  namespace: apigee-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --metrics-addr=127.0.0.1:8080
+        - --enable-leader-election
+        command:
+        - /manager
+        image: rajeshm7910/apigee-crd:latest
+        name: manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10
