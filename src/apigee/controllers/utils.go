@@ -76,13 +76,13 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 	authString = ""
 
 	if config_type == "legacy" {
-		if auth == "Basic" {
+		if auth == "base64" {
 			username := configMap.Data["username"]
 			password := configMap.Data["password"]
 			encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-			authString = auth + " " + encoded
-		} else {
-			authString = auth
+			authString = "Basic " + " " + encoded
+		} else if auth == "token" {
+			authString = "Bearer "
 		}
 	} else {
 
@@ -95,7 +95,7 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 
 		service_account := secret.Data["service_account"]
 		access_token, _ := generateAccessTokenFromSecret(service_account)
-		authString = auth + " " + access_token
+		authString = "Bearer " + " " + access_token
 	}
 
 	//log.V(1).Info("Auth  " + authString)

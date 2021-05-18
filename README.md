@@ -44,7 +44,7 @@ data:
   org_name: amer-cs-hybrid-demo32
   env_name: test
   type: apigeex
-  auth: Bearer
+  auth: token
 
 ```
 

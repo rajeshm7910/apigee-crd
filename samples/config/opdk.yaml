@@ -18,4 +18,4 @@ data:
   org_name: demo
   env_name: test
   type: legacy
-  auth: Basic
+  auth: base64
