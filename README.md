@@ -11,17 +11,18 @@ This projects publishes bunch of Custom Resource Definitions for Apigee resource
 
 ### Getting Started
 
-
- 1. For OPDK, Apply Configuration
+ 1. For OPDK, Edit the config file as given in samples(samples/config/opdk.yaml) and apply Configuration.
  ```kubectl apply -f samples/config/opdk.yaml```
+
 
  2. For Hybrid or ApigeeX
 
- Create a secret from the service account
+ Create a secret from the Service Account json file.
   ```
  kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config secret/amer-cs-hybrid-demo32-org-admin created
  ```
- Apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
+ 
+ Edit the config file as given in samples(samples/config/hybrid.yaml) and apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
 
 ```
 ---
@@ -47,14 +48,18 @@ data:
 
 ```
 
-Apply the configuration
 ```kubectl apply -f samples/config/hybrid.yaml```
 
+ 3.  Applying CRD's
 
- 3.  Testing the APIs
+  Apply Apigee CRDS CRD 
+ ```kubectl apply -f crds/apigee-crd-all.yaml```
 
- Apply API Product CRD 
- ```kubectl apply -f crds/ApiProductCRD.yaml```
+
+4. To Test
+
+ ```kubectl apply -f samples/apigee_v1_apiproduct.yaml```
+
 
 Check the metadata section of the sample. You can specify the env in the metadata which will override the default environment.  The config section should map to the config-map created above.
 
@@ -67,14 +72,14 @@ metadata:
   config: apigee-hybrid-config
  ```
 
- 4. To Test - 
- ```kubectl apply -f samples/apigee_v1_apiproduct.yaml```
 
-	```
-	kubectl get apiproducts
-	NAME AGE
-	my-samples 55s
-	```
+```
+kubectl get apiproducts
+NAME AGE
+my-samples 55s
+```
+
+
 5. Check through Edge UI if APIProduct are created.
 6. Delete the API Product 
 
