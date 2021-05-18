@@ -52,8 +52,8 @@ data:
 
  3.  Applying CRD's
 
-  Apply Apigee CRDS CRD 
- ```kubectl apply -f crds/apigee-crd-all.yaml```
+  Apply Apigee CRD 
+ ```kubectl apply -f crds/```
 
 
 4. To Test
