@@ -4,6 +4,7 @@ metadata:
   name: developer-sample
   env : test
   config: apigee-hybrid-config
+  config-namespace: apigee-config
 spec:
   # Add fields here
   email: rajeshmi@google.com

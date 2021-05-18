@@ -4,6 +4,7 @@ metadata:
   name: mock-api
   env : test
   config: apigee-hybrid-config
+  config-namespace: apigee-config
 spec:
   # Add fields here
   name: mock-api

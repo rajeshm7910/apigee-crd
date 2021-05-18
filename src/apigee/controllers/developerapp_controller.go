@@ -50,32 +50,6 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 	log.V(1).Info("Starting the Developer App update")
 
-	/*
-			var configMap corev1.ConfigMap
-			if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-config", Namespace: "apigee-config"}, &configMap); err != nil && apierrs.IsNotFound(err) {
-				log.V(0).Info("Error in calling configmap")
-			}
-
-			//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
-			mgmt_api := configMap.Data["mgmt_api"]
-			env_name := configMap.Data["env_name"]
-			org_name := configMap.Data["org_name"]
-			username := configMap.Data["username"]
-			password := configMap.Data["password"]
-
-			log.V(1).Info("Mgmt API " + mgmt_api)
-			log.V(1).Info("Env  " + env_name)
-			log.V(1).Info("Org  " + org_name)
-			log.V(1).Info("user  " + username)
-			//log.V(1).Info("Password  " + password)
-
-			encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-			base64_auth := "Basic " + encoded
-			log.V(1).Info("Auth  " + base64_auth)
-
-		url := mgmt_api + "/organizations/" + org_name + "/developers/"
-	*/
-
 	var instance apigeev1.DeveloperApp
 
 	if err := r.Client.Get(ctx, req.NamespacedName, &instance); err != nil {
@@ -87,8 +61,8 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	}
 
 	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
-	config, _, _ := getMetadata(annotatedData, log)
-	baseUrl, authString, org, env := getAuth(r.Client, log, config, "apigee-config")
+	config, configNamespace, env, org := getMetadata(annotatedData, log)
+	baseUrl, authString, org, env := getAuth(r.Client, log, config, configNamespace, env, org)
 	log.V(1).Info("Env " + env)
 
 	url := baseUrl + "/organizations/" + org + "/developers/"

@@ -43,7 +43,7 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-func getMetadata(annotatedData string, log logr.Logger) (config string, env string, org string) {
+func getMetadata(annotatedData string, log logr.Logger) (config string, configNamespace string, env string, org string) {
 
 	var result map[string]interface{}
 	json.Unmarshal([]byte(annotatedData), &result)
@@ -51,12 +51,13 @@ func getMetadata(annotatedData string, log logr.Logger) (config string, env stri
 	config = fmt.Sprintf("%v", metadata["config"])
 	env = fmt.Sprintf("%v", metadata["env"])
 	org = fmt.Sprintf("%v", metadata["org"])
+	configNamespace = fmt.Sprintf("%v", metadata["config-namespace"])
 
-	return config, env, org
+	return config, configNamespace, env, org
 
 }
 
-func getAuth(client client.Client, log logr.Logger, configName string, namespace string) (baseUrl string, authString string, org string, env string) {
+func getAuth(client client.Client, log logr.Logger, configName string, namespace string, environment string, organization string) (baseUrl string, authString string, org string, env string) {
 
 	var configMap corev1.ConfigMap
 	if err := client.Get(context.TODO(), types.NamespacedName{Name: configName, Namespace: namespace}, &configMap); err != nil && apierrs.IsNotFound(err) {
@@ -67,8 +68,16 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 	auth := configMap.Data["auth"]
 
 	baseUrl = configMap.Data["mgmt_api"]
-	env = configMap.Data["env_name"]
-	org = configMap.Data["org_name"]
+	if organization != "<nil>" {
+		org = organization
+	} else {
+		org = configMap.Data["org_name"]
+	}
+	if environment != "<nil>" {
+		env = environment
+	} else {
+		env = configMap.Data["env_name"]
+	}
 
 	//log.V(1).Info("config type " + config_type)
 	//log.V(1).Info("auth type " + auth)

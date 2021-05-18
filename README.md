@@ -70,6 +70,7 @@ metadata:
   name: my-samples
   env : test
   config: apigee-hybrid-config
+  config-namespace: apigee-config
  ```
 
 

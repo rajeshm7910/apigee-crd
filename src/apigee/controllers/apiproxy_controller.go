@@ -70,8 +70,8 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
-	config, _, _ := getMetadata(annotatedData, log)
-	baseUrl, authString, org, env := getAuth(r.Client, log, config, "apigee-config")
+	config, configNamespace, env, org := getMetadata(annotatedData, log)
+	baseUrl, authString, org, env := getAuth(r.Client, log, config, configNamespace, env, org)
 	log.V(1).Info("Env " + env)
 
 	url := baseUrl + "/organizations/" + org + "/apis"
