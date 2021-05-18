@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/lestrrat/go-jwx/jwa"
 	"github.com/lestrrat/go-jwx/jwt"
 )
@@ -87,6 +88,58 @@ func generateJWT(privateKey string) (string, error) {
 		return "", err
 	}
 	return string(payload), nil
+}
+
+func generateAccessTokenLegacy(token_url string, username string, password string, mfa_token string, log logr.Logger) (string, error) {
+
+	//oAuthAccessToken is a structure to hold OAuth response
+	type oAuthAccessToken struct {
+		AccessToken string `json:"access_token,omitempty"`
+		ExpiresIn   int    `json:"expires_in,omitempty"`
+		TokenType   string `json:"token_type,omitempty"`
+	}
+
+	form := url.Values{}
+	form.Add("grant_type", "password")
+	form.Add("username", username)
+	form.Add("password", password)
+
+	if mfa_token != "<nil>" {
+		token_url = token_url + "?mfa_token=" + mfa_token
+	}
+
+	log.V(1).Info("token_url " + token_url)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", token_url, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	//req.Header.Add("Content-Length", strconv.Itoa(len(form.Encode())))
+	req.Header.Add("Authorization", "Basic ZWRnZWNsaTplZGdlY2xpc2VjcmV0")
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	log.V(1).Info(fmt.Sprintf("resp status code = %+v", resp.StatusCode))
+
+	if resp.StatusCode != 200 {
+		_, _ = ioutil.ReadAll(resp.Body)
+		return "", errors.New("error in response")
+	}
+	decoder := json.NewDecoder(resp.Body)
+	accessToken := oAuthAccessToken{}
+	if err := decoder.Decode(&accessToken); err != nil {
+		return "", errors.New("error in response")
+	}
+
+	return accessToken.AccessToken, nil
+
 }
 
 //generateAccessToken generates a Google OAuth access token from a service account

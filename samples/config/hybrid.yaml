@@ -16,5 +16,5 @@ data:
   service_account_secret : amer-cs-hybrid-demo32-org-admin
   org_name: amer-cs-hybrid-demo32
   env_name: test
-  type: apigeex
+  profile: apigeex
   auth: token

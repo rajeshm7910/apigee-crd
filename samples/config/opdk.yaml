@@ -17,5 +17,5 @@ data:
   password: Secret123
   org_name: demo
   env_name: test
-  type: legacy
+  profile: legacy
   auth: base64

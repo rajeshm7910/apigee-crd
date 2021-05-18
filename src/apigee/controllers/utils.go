@@ -64,7 +64,7 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 		log.V(0).Info("Error in calling configmap")
 	}
 
-	config_type := configMap.Data["type"]
+	config_profile := configMap.Data["profile"]
 	auth := configMap.Data["auth"]
 
 	baseUrl = configMap.Data["mgmt_api"]
@@ -79,19 +79,24 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 		env = configMap.Data["env_name"]
 	}
 
-	//log.V(1).Info("config type " + config_type)
+	//log.V(1).Info("config type " + config_profile)
 	//log.V(1).Info("auth type " + auth)
 
 	authString = ""
 
-	if config_type == "legacy" {
+	if config_profile == "legacy" {
+		username := configMap.Data["username"]
+		password := configMap.Data["password"]
 		if auth == "base64" {
-			username := configMap.Data["username"]
-			password := configMap.Data["password"]
 			encoded := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 			authString = "Basic " + " " + encoded
 		} else if auth == "token" {
 			authString = "Bearer "
+			mfa_token := configMap.Data["mfa_token"]
+			token_uri := configMap.Data["token_url"]
+			access_token, _ := generateAccessTokenLegacy(token_uri, username, password, mfa_token, log)
+			authString = authString + access_token
+
 		}
 	} else {
 
@@ -108,35 +113,7 @@ func getAuth(client client.Client, log logr.Logger, configName string, namespace
 	}
 
 	//log.V(1).Info("Auth  " + authString)
-
 	//log.V(1).Info(fmt.Sprintf("configMap = %+v", configMap.Data["env_name"]))
-	/*
-		mgmt_api := configMap.Data["mgmt_api"]
-		env_name := configMap.Data["env_name"]
-		org_name := configMap.Data["org_name"]
-		username := configMap.Data["username"]
-		password := configMap.Data["password"]
-
-		log.V(1).Info("Mgmt API " + mgmt_api)
-		log.V(1).Info("Env  " + env_name)
-		log.V(1).Info("Org  " + org_name)
-		log.V(1).Info("user  " + username)
-		//log.V(1).Info("Password  " + password)
-
-		var configHybridMap corev1.ConfigMap
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "apigee-hybrid-config", Namespace: "apigee-config"}, &configHybridMap); err != nil && apierrs.IsNotFound(err) {
-			log.V(0).Info("Error in calling configmap")
-		}
-
-		service_account_secret := configHybridMap.Data["service_account_secret"]
-		mgmt_api_hyrbid := configHybridMap.Data["mgmt_api"]
-		org_name_hybrid := configHybridMap.Data["org_name"]
-
-		log.V(1).Info("Hybrid Mgmt API " + mgmt_api_hyrbid)
-		log.V(1).Info("Org Hybrid  " + org_name_hybrid)
-		log.V(1).Info("Service Account  " + service_account_secret)
-
-	*/
 
 	return baseUrl, authString, org, env
 }

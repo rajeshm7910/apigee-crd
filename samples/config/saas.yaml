@@ -9,14 +9,15 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: apigee-config
+  name: apigee-config-saas
   namespace: apigee-config
 data:
   mgmt_api: https://api.enterprise.apigee.com/v1
-  username:
-  password:
-  token_url: 
-  org_name: demo
+  username: apigee-xx@apigee.com
+  password: xcxcxcxcxc
+  token_url: https://login.apigee.com/oauth/token
+  #mfa_token: "695573"
+  org_name: imedusa
   env_name: test
-  type: legacy
-  auth: Bearer
+  profile: legacy
+  auth: token
