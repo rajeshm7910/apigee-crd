@@ -19,7 +19,7 @@ This projects publishes bunch of Custom Resource Definitions for Apigee resource
 
  Create a secret from the Service Account json file.
   ```
- kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config secret/amer-cs-hybrid-demo32-org-admin created
+ kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config
  ```
  
  Edit the config file as given in samples(samples/config/hybrid.yaml) and apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
