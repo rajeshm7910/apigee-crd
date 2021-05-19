@@ -138,7 +138,7 @@ loans-api   deployed     1          13s
 7. Delete the API Proxy 
 
 	```
-	kubectl delete -f apigee_v1_apiproxy.yaml
+	kubectl delete -f samples/apigee_v1_apiproxy.yaml
 apiproxy.apigee.google.com "loans-api" deleted
 	```
 8. Check through Edge UI to see if the Api Proxy is deleted
