@@ -3,7 +3,7 @@ kind: ApiProduct
 metadata:
   name: my-samples
   env : test
-  config: apigee-hybrid-config
+  config: apigee-config-saas
   config-namespace: apigee-config
 spec:
   # Add fields here

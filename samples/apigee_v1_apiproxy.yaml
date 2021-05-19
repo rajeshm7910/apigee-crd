@@ -1,11 +1,13 @@
 apiVersion: apigee.google.com/v1
 kind: ApiProxy
 metadata:
-  name: mock-api
+  name: loans-api
   env : test
   config: apigee-hybrid-config
   config-namespace: apigee-config
 spec:
   # Add fields here
-  name: mock-api
-  zipurl: gs://opdk/mock.zip
+  name: loans-api
+  #zipurl: gs://opdk/mock.zip
+  #zipurl: https://storage.googleapis.com/opdk/mock.zip
+  openapispec : https://storage.googleapis.com/opdk/loans-spec.yaml

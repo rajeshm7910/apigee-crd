@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
+	github.com/getkin/kin-openapi v0.3.1
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0
 	github.com/lestrrat/go-jwx v0.0.0-20210302221443-a9d01c1b7121
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect

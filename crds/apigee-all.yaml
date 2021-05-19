@@ -146,6 +146,8 @@ spec:
               description: Foo is an example field of ApiProxy. Edit ApiProxy_types.go
                 to remove/update
               type: string
+            openapispec:
+              type: string
             zipurl:
               type: string
           type: object

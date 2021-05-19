@@ -25,8 +25,9 @@ type ApiProxySpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of ApiProxy. Edit ApiProxy_types.go to remove/update
-	Name   string `json:"name,omitempty"`
-	ZipUrl string `json:"zipurl,omitempty"`
+	Name        string `json:"name,omitempty"`
+	ZipUrl      string `json:"zipurl,omitempty"`
+	OpenApiSpec string `json:"openapispec,omitempty"`
 }
 
 // ApiProxyStatus defines the observed state of ApiProxy

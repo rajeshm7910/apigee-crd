@@ -40,6 +40,9 @@ import (
 	"os"
 	"time"
 
+	bundle "apigee.com/m/controllers/bundlegen"
+	proxybundle "apigee.com/m/controllers/bundlegen/proxybundle"
+
 	"cloud.google.com/go/storage"
 )
 
@@ -87,8 +90,13 @@ func (r *ApiProxyReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// registering our finalizer.
 		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
-			log.V(0).Info("Updating Finalizers")
-			rev := createApiProxy(instance.Spec.Name, instance.Spec.ZipUrl, url, authString, log)
+			log.V(0).Info("Updating Finalizers " + instance.Spec.ZipUrl)
+			rev := 0
+			if instance.Spec.ZipUrl != "" {
+				rev = createApiProxy(instance.Spec.Name, instance.Spec.ZipUrl, url, authString, log)
+			} else {
+				rev = createApiProxyFromOAS(instance.Spec.Name, instance.Spec.OpenApiSpec, url, authString, log, false, false)
+			}
 			instance.Status.DeploymentState = ""
 			instance.Status.Revision = rev
 			DeployApiProxy(instance.Spec.Name, rev, true, baseUrl, org, env, authString, log)
@@ -133,6 +141,26 @@ func (r *ApiProxyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apigeev1.ApiProxy{}).
 		Complete(r)
+}
+
+func createApiProxyFromOAS(name string, oasURI string, Baseurl string, authString string, log logr.Logger, validateSpec bool, skipPolicy bool) (revision int) {
+
+	var content []byte
+	var oasDocName string
+	oasDocName, content, _ = bundle.LoadDocumentFromURI(oasURI, validateSpec)
+
+	log.V(1).Info(fmt.Sprintf("contennt=+%v", string(content)))
+
+	_ = bundle.GenerateAPIProxyDefFromOAS(name, oasDocName, skipPolicy, log)
+	_ = proxybundle.GenerateAPIProxyBundle(name, string(content), oasDocName, skipPolicy, log)
+
+	//_, _ = apis.CreateProxy(name, name+".zip")
+	const rootDir = "/tmp/"
+	bundlePath := rootDir + name + ".zip"
+	rev, _ := ImportBundle(name, name, bundlePath, Baseurl, authString, log)
+	log.V(0).Info(fmt.Sprintf("Revision = %+v", rev))
+	return rev
+
 }
 
 func parseProxyInput(instance apigeev1.ApiProxy, log logr.Logger) string {
@@ -219,11 +247,21 @@ func createApiProxy(name string, zipurl string, Baseurl string, authString strin
 	u, _ := url.Parse(zipurl)
 	log.V(1).Info(fmt.Sprintf("proto: %q, bucket: %q, key: %q", u.Scheme, u.Host, u.Path))
 
-	bucket := u.Host
-	proxy := strings.TrimLeft(u.Path, "/")
+	var data []byte
+	//proxy := strings.TrimLeft(u.Path, "/")
+	ss := strings.Split(u.Path, "/")
+	fmt.Println(len(ss))
+	proxy := ss[len(ss)-1]
+
 	log.V(1).Info("proxy name=" + proxy)
 
-	data, _ := downloadFile(bucket, proxy)
+	if u.Scheme == "gs" {
+		data, _ = downloadFileFromBucket(u.Host, proxy)
+	} else {
+
+		data, _ = downloadFile(zipurl, authString, log)
+	}
+
 	//log.V(1).Info(fmt.Sprintf("data = %+v", data))
 	fileName := "/tmp/" + proxy
 
@@ -238,7 +276,17 @@ func createApiProxy(name string, zipurl string, Baseurl string, authString strin
 }
 
 // downloadFile downloads an object.
-func downloadFile(bucket, object string) ([]byte, error) {
+func downloadFile(baseURL string, authString string, log logr.Logger) ([]byte, error) {
+
+	u, _ := url.Parse(baseURL)
+	log.V(0).Info(u.String())
+	respBody, err := HttpClient(true, authString, log, u.String())
+	return respBody, err
+
+}
+
+// downloadFile downloads an object.
+func downloadFileFromBucket(bucket, object string) ([]byte, error) {
 	// bucket := "bucket-name"
 	// object := "object-name"
 	ctx := context.Background()
