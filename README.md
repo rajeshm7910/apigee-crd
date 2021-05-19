@@ -2,7 +2,7 @@
 
 Its goal is to manage Apigee  resources like apiproxies, apiproducts, developes etc as Kubernetes Objects.
 
-This projects publishes bunch of Custom Resource Definitions for Apigee resources that can be deployed in a Kubernetes Cluster. At this time Apigee offers gcloud (imperative) or APIs to create Apigee resources. This offers declarative way of defining Apigee resources as yaml files. Finally kubectl can used to apply and manage these configurations.
+This project publishes Custom Resource Definition for Apigee resources that can be deployed in a Kubernetes Cluster.This offers declarative way of defining Apigee resources as yaml files. Finally the resources can be managed by the easy-to-use kubectl commands.
 
 
 ### CRD Supported
@@ -17,23 +17,67 @@ This projects publishes bunch of Custom Resource Definitions for Apigee resource
  1. For OPDK, Edit the config file as given in samples(samples/config/opdk.yaml) and apply Configuration.
  ```kubectl apply -f samples/config/opdk.yaml```
 
+opdk sample config
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apigee-config-opdk
+  namespace: apigee-config
+data:
+  mgmt_api: http://xx.xx.xx.xx:8080/v1
+  username: opdk@apigee.com
+  password: Secret123
+  org_name: demo
+  env_name: test
+  profile: legacy
+  auth: base64
+```
+
 Please note that profile is legacy and auth is base64. In case you want to use SAML based token, please follow the steps mentioned in SAAS below.
 
  2. For SAAS, Edit the config file as given in samples(samples/config/saas.yaml) and apply Configuration.
   ```kubectl apply -f samples/config/saas.yaml```
 
+saas sample config
+```
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apigee-config-saas
+  namespace: apigee-config
+data:
+  mgmt_api: https://api.enterprise.apigee.com/v1
+  username: xcxcxcxcx@apigee.com
+  password: xxcxcxcxc
+  token_url: https://login.apigee.com/oauth/token
+  #mfa_token: "695573"
+  org_name: imedusa
+  env_name: test
+  profile: legacy
+  auth: token
+```
+
 Please note that profile is legacy and auth is token.The username and password are the machine users for automated token generation. In case you want to authenticate with mfa_token you can also put those values along with regular user credentials.
-In case you want to use base64 credentials which is discouraged, you can proide auth value as base64.
+In case you want to use base64 credentials which is deprecated, you can proide auth value as base64.
  
  3. For Hybrid or ApigeeX
 
- - Create a secret from the Service Account json file.
+- Create apigee-config namespace
+```
+kubectl create namespace apige-config
+```
+- Obtain the Service Account json file with the appropriate role. 
 
-  ```
- kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config
- ```
- 
- - Edit the config file as given in samples(samples/config/hybrid.yaml) and apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
+- Create a kubernetes secret from the Service Account json file.
+
+```
+kubectl create secret generic amer-cs-hybrid-demo32-org-admin --from-file=service_account=./amer-cs-hybrid-demo32-org-admin.json --namespace apigee-config
+```
+
+- Edit the config file as given in samples(samples/config/hybrid.yaml) and apply Hybrid specific configuration with the service_account_secret set to the secret name created above.
 
 ```
 ---
@@ -70,31 +114,31 @@ data:
 
 5. To Test
 
- ```kubectl apply -f samples/apigee_v1_apiproduct.yaml```
+```kubectl apply -f samples/apigee_v1_apiproxy.yaml```
 
-Check the metadata section of the sample. You can specify the env in the metadata which will override the default environment provided in config above.  The config and config-namespace section should map to the config-map created above.
+Check the metadata section of this sample. You can specify the env in the metadata which will override the default env provided in config above.  The config and config-namespace section should map to the config-map created above.
 
  ```
 apiVersion: apigee.google.com/v1
-kind: ApiProduct
+kind: ApiProxy
 metadata:
-  name: my-samples
+  name: loans-api
   env : test
   config: apigee-hybrid-config
   config-namespace: apigee-config
  ```
 
 ```
-kubectl get apiproducts
-NAME AGE
-my-samples 55s
+kubectl get apiproxies
+NAME        DEPLOYMENT   REVISION   AGE
+loans-api   deployed     1          13s
 ```
 
-6. Check through Edge UI if APIProduct are created.
-7. Delete the API Product 
+6. Check through Edge UI if Proxies are created.
+7. Delete the API Proxy 
 
 	```
-	kubectl delete apiproduct my-samples
-	apiproduct.apigee.google.com "my-samples" deleted
+	kubectl delete -f apigee_v1_apiproxy.yaml
+apiproxy.apigee.google.com "loans-api" deleted
 	```
-8. Check through Edge UI to see if the APIProduct is deleted
+8. Check through Edge UI to see if the Api Proxy is deleted
