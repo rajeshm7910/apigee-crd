@@ -67,7 +67,7 @@ In case you want to use base64 credentials which is deprecated, you can proide a
 
 - Create apigee-config namespace
 ```
-kubectl create namespace apige-config
+kubectl create namespace apigee-config
 ```
 - Obtain the Service Account json file with the appropriate role. 
 
