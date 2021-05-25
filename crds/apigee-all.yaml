@@ -254,11 +254,9 @@ spec:
                 - attributes
                 type: object
               type: array
-            developer_email:
+            name:
               description: Foo is an example field of DeveloperApp. Edit DeveloperApp_types.go
                 to remove/update
-              type: string
-            name:
               type: string
             scopes:
               items:

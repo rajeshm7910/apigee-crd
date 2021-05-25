@@ -5,9 +5,9 @@ metadata:
   env : test
   config: apigee-hybrid-config
   config-namespace: apigee-config
+  developer_email: rajeshmi@google.com
 spec:
   # Add fields here
-  developer_email: rajeshm7910@gmail.com
   name: myapp
   scopes: []
   status: approved

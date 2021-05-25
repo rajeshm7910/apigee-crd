@@ -29,13 +29,12 @@ type DeveloperAppSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of DeveloperApp. Edit DeveloperApp_types.go to remove/update
-	DeveloperEmail string            `json:"developer_email,omitempty"`
-	Name           string            `json:"name,omitempty"`
-	Attributes     []AttributesSpec  `json:"attributes"`
-	Status         string            `json:"status,omitempty"`
-	Scopes         []string          `json:"scopes,omitempty" protobuf:"bytes,3,rep,name=scopes"`
-	Credentials    []CredentialsSpec `json:"credentials,omitempty"`
-	CallbackUrl    string            `json:"callbackUrl,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Attributes  []AttributesSpec  `json:"attributes"`
+	Status      string            `json:"status,omitempty"`
+	Scopes      []string          `json:"scopes,omitempty" protobuf:"bytes,3,rep,name=scopes"`
+	Credentials []CredentialsSpec `json:"credentials,omitempty"`
+	CallbackUrl string            `json:"callbackUrl,omitempty"`
 	/*
 		  ---
 			attributes:

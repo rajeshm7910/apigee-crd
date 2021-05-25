@@ -62,11 +62,12 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 	annotatedData := instance.GetObjectMeta().GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
 	config, configNamespace, env, org := getMetadata(annotatedData, log)
+	developer_email := getDeveloperEmail(annotatedData, log)
+	log.V(1).Info("Developer Email " + developer_email)
 	baseUrl, authString, org, env := getAuth(r.Client, log, config, configNamespace, env, org)
 	log.V(1).Info("Env " + env)
 
 	url := baseUrl + "/organizations/" + org + "/developers/"
-	developer_email := instance.Spec.DeveloperEmail
 	url = url + developer_email + "/apps"
 
 	log.V(0).Info(url)
@@ -81,9 +82,6 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
 		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-			pushdata := parseDeveloperAppContent(instance, log)
-			data := []byte(pushdata)
-			createDeveloperApp(instance.Spec.Name, data, url, authString, log)
 
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
@@ -105,6 +103,10 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
+
+	pushdata := parseDeveloperAppContent(instance, log)
+	data := []byte(pushdata)
+	createDeveloperApp(instance.Spec.Name, data, url, authString, log)
 
 	log.V(0).Info("Finishing the Api DeveloperApp update")
 
@@ -199,7 +201,7 @@ func createDeveloperApp(name string, data []byte, url string, authString string,
 
 	log.V(1).Info("calling http")
 	method := "POST"
-	if checkApiProduct(name, url, authString, log) {
+	if checkDeveloperApp(name, url, authString, log) {
 		method = "PUT"
 		url = url + "/" + name
 	}

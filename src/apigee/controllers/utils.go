@@ -57,6 +57,16 @@ func getMetadata(annotatedData string, log logr.Logger) (config string, configNa
 
 }
 
+func getDeveloperEmail(annotatedData string, log logr.Logger) (developer_email string) {
+
+	var result map[string]interface{}
+	json.Unmarshal([]byte(annotatedData), &result)
+	metadata := result["metadata"].(map[string]interface{})
+	developer_email = fmt.Sprintf("%v", metadata["developer_email"])
+
+	return developer_email
+}
+
 func getAuth(client client.Client, log logr.Logger, configName string, namespace string, environment string, organization string) (baseUrl string, authString string, org string, env string) {
 
 	var configMap corev1.ConfigMap
