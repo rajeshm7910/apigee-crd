@@ -180,6 +180,18 @@ metadata:
   creationTimestamp: null
   name: developerapps.apigee.google.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.name
+    description: App Name
+    name: AppName
+    type: string
+  - JSONPath: .status.consumerKey
+    description: Consumer Key
+    name: ConsumerKey
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: apigee.google.com
   names:
     kind: DeveloperApp
@@ -187,6 +199,7 @@ spec:
     plural: developerapps
     singular: developerapp
   scope: Namespaced
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: DeveloperApp is the Schema for the developerapps API
@@ -269,6 +282,14 @@ spec:
           type: object
         status:
           description: DeveloperAppStatus defines the observed state of DeveloperApp
+          properties:
+            consumerKey:
+              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                of cluster Important: Run "make" to regenerate code after modifying
+                this file'
+              type: string
+            consumerSecret:
+              type: string
           type: object
       type: object
   version: v1
@@ -291,6 +312,14 @@ metadata:
   creationTimestamp: null
   name: developers.apigee.google.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.email
+    description: Developer Email
+    name: DeveloperEmail
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: apigee.google.com
   names:
     kind: Developer
@@ -298,6 +327,7 @@ spec:
     plural: developers
     singular: developer
   scope: Namespaced
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: Developer is the Schema for the developers API
@@ -337,6 +367,12 @@ spec:
           type: object
         status:
           description: DeveloperStatus defines the observed state of Developer
+          properties:
+            developerId:
+              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                of cluster Important: Run "make" to regenerate code after modifying
+                this file'
+              type: string
           type: object
       type: object
   version: v1

@@ -53,11 +53,14 @@ type DeveloperSpec struct {
 type DeveloperStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	DeveloperId string `json:"developerId,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // Developer is the Schema for the developers API
+// +kubebuilder:printcolumn:name="DeveloperEmail",type="string",JSONPath=".spec.email",description="Developer Email"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type Developer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

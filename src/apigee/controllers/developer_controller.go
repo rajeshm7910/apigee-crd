@@ -32,6 +32,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 // DeveloperReconciler reconciles a Developer object
@@ -80,7 +82,8 @@ func (r *DeveloperReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 			pushdata := parseDeveloperInstanceAndCreateJSON(instance, log)
 			data := []byte(pushdata)
-			createDeveloper(instance.Spec.Email, data, url, authString, log)
+			developerId := createDeveloper(instance.Spec.Email, data, url, authString, log)
+			instance.Status.DeveloperId = developerId
 
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
@@ -193,7 +196,7 @@ func checkDeveloper(name string, url string, authString string, log logr.Logger)
 	return false
 }
 
-func createDeveloper(name string, data []byte, url string, authString string, log logr.Logger) {
+func createDeveloper(name string, data []byte, url string, authString string, log logr.Logger) (developerId string) {
 
 	log.V(1).Info("calling http")
 	method := "POST"
@@ -233,9 +236,16 @@ func createDeveloper(name string, data []byte, url string, authString string, lo
 	body, err1 := ioutil.ReadAll(resp1.Body)
 	log.V(0).Info("calling http4")
 
+	json := string(body)
+	developerId = gjson.Get(json, "developerId").Str
+
+	log.V(1).Info(developerId)
+
 	if err1 != nil {
 		//log.Error("Error reading body. ", err)
 	}
 	fmt.Printf("%s\n", body)
+
+	return developerId
 
 }

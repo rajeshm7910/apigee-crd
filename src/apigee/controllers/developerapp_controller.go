@@ -32,6 +32,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 // DeveloperAppReconciler reconciles a DeveloperApp object
@@ -83,10 +85,17 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// registering our finalizer.
 		if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
 
+			pushdata := parseDeveloperAppContent(instance, log)
+			data := []byte(pushdata)
+			consumerKey, consumerSecret := createDeveloperApp(instance.Spec.Name, data, url, authString, log)
+			instance.Status.ConsumerKey = consumerKey
+			instance.Status.ConsumerSecret = consumerSecret
+
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Client.Update(context.Background(), &instance); err != nil {
 				return ctrl.Result{}, err
 			}
+
 		}
 	} else {
 		// The object is being deleted
@@ -103,10 +112,6 @@ func (r *DeveloperAppReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
-
-	pushdata := parseDeveloperAppContent(instance, log)
-	data := []byte(pushdata)
-	createDeveloperApp(instance.Spec.Name, data, url, authString, log)
 
 	log.V(0).Info("Finishing the Api DeveloperApp update")
 
@@ -155,7 +160,7 @@ func deleteDeveloperApp(name string, url string, authString string, log logr.Log
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("%s\n", respBody)
+	log.V(1).Info(fmt.Sprintf("%s\n", respBody))
 	log.V(1).Info("Deleting DeveloperApp Apigee")
 }
 
@@ -197,7 +202,7 @@ func checkDeveloperApp(name string, url string, authString string, log logr.Logg
 	return false
 }
 
-func createDeveloperApp(name string, data []byte, url string, authString string, log logr.Logger) {
+func createDeveloperApp(name string, data []byte, url string, authString string, log logr.Logger) (consumerKey string, consumerSecret string) {
 
 	log.V(1).Info("calling http")
 	method := "POST"
@@ -236,16 +241,26 @@ func createDeveloperApp(name string, data []byte, url string, authString string,
 
 	body, err1 := ioutil.ReadAll(resp1.Body)
 	log.V(0).Info("calling http4")
-	var result map[string]interface{}
+	/*var result map[string]interface{}
 	json.Unmarshal(body, &result)
 	log.V(0).Info(fmt.Sprintf("%v", result))
-	//credentials := result["credentials"].(map[string]interface{})
-	//maps1 := fmt.Sprintf("%v", credentials)
-	//log.V(0).Info(maps1)
+	credentials := result["credentials"].(map[string]interface{})
+	maps1 := fmt.Sprintf("%v", credentials)
+	log.V(0).Info(maps1)
+	*/
+
+	json := string(body)
+	consumerKey = gjson.Get(json, "credentials.0.consumerKey").Str
+	consumerSecret = gjson.Get(json, "credentials.0.consumerSecret").Str
+
+	log.V(1).Info(consumerKey)
+	log.V(1).Info(consumerSecret)
 
 	if err1 != nil {
 		//log.Error("Error reading body. ", err)
 	}
-	fmt.Printf("%s\n", body)
+	//fmt.Printf("%s\n", body)
+
+	return consumerKey, consumerSecret
 
 }

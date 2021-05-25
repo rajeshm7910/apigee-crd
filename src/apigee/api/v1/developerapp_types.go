@@ -80,11 +80,16 @@ type AppProductSpec struct {
 type DeveloperAppStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	ConsumerKey    string `json:"consumerKey,omitempty"`
+	ConsumerSecret string `json:"consumerSecret,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // DeveloperApp is the Schema for the developerapps API
+// +kubebuilder:printcolumn:name="AppName",type="string",JSONPath=".spec.name",description="App Name"
+// +kubebuilder:printcolumn:name="ConsumerKey",type="string",JSONPath=".status.consumerKey",description="Consumer Key"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type DeveloperApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
