@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<APIProxy revision="2" name="Mock-v1">
+    <Basepaths>/v1/mock</Basepaths>
+    <ConfigurationVersion majorVersion="4" minorVersion="0"/>
+    <CreatedAt>1618934851424</CreatedAt>
+    <CreatedBy>opdk@apigee.com</CreatedBy>
+    <Description>Apigee mock target service endpoint</Description>
+    <DisplayName>Mock-API</DisplayName>
+    <LastModifiedAt>1618935421148</LastModifiedAt>
+    <LastModifiedBy>opdk@apigee.com</LastModifiedBy>
+    <ManifestVersion>SHA-512:4ad6cbad74d717dbba6a357132a97825e78399786550977737085539f3fbd4b8be5c3c6084d9850096ab2fb509d3afa9e29d77967d54b59d4142c9a090c10bb7</ManifestVersion>
+    <Policies>
+        <Policy>AM-Set-Headers</Policy>
+        <Policy>Quota-1</Policy>
+        <Policy>SC-Get-XML</Policy>
+        <Policy>X2J-Convert-Response</Policy>
+        <Policy>XML-to-JSON-1</Policy>
+    </Policies>
+    <ProxyEndpoints>
+        <ProxyEndpoint>default</ProxyEndpoint>
+    </ProxyEndpoints>
+    <Resources/>
+    <Spec></Spec>
+    <TargetServers/>
+    <TargetEndpoints>
+        <TargetEndpoint>default</TargetEndpoint>
+    </TargetEndpoints>
+</APIProxy>

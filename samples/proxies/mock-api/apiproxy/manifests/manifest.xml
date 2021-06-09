@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Manifest name="manifest">
+    <Policies>
+        <VersionInfo resourceName="AM-Set-Headers" version="SHA-512:e7c6857a69d260179be1b38555504e66891ffc3c138cddd52a4b93bc9c27ca03ce8f0b2e4854a6f44baf50f194b5e928cdf71e1bc5da65f8f74ed99527fa6908"/>
+        <VersionInfo resourceName="Quota-1" version="SHA-512:030e8606469f36e3a1019d4db05d07af2fb295c383bd32de0dee69a7e6d7c7c3d2d9622711fd61dc4169c6e364b19a967cb57f59b3f2aa6817087baea5237c17"/>
+        <VersionInfo resourceName="SC-Get-XML" version="SHA-512:ecb6b16f62220764d0b6f85baf63e1923d063316674b981aac81ef733e1623c5c8588d05e242708ed609b4fe35cb7b86d0683c871c3dd58e8f9c34f18b781b6b"/>
+        <VersionInfo resourceName="X2J-Convert-Response" version="SHA-512:98a6b5bad60f6e504abab8568ad7aa83feb0fc7266131b274aea8d0bb874809ec9aa407e1e81ba14af5a012be22fc801cda00be02565abd21e414fb3f314328a"/>
+        <VersionInfo resourceName="XML-to-JSON-1" version="SHA-512:e837a7068e46e80e1af97a5e74d3c58364ad08fba6e32f0bddc6e072e3841353ae0809584cca9ed1b3df02216d729f1e2b21d84205cbb208d66c3cd9752d85ac"/>
+    </Policies>
+    <ProxyEndpoints>
+        <VersionInfo resourceName="default" version="SHA-512:2f5592e6da61612374c04dbdc44e76b40ea55ae865137244cb21ae80f21d4d40054d653f3483580c1e00a5f64b5b303fa1c513a5ac4f64beefb325cb4e4a6f15"/>
+    </ProxyEndpoints>
+    <Resources/>
+    <SharedFlows/>
+    <TargetEndpoints>
+        <VersionInfo resourceName="default" version="SHA-512:97667241ce3c7c71cf475fc9565b07f56cd1de265ead1b6aeb9e718e180639602f061e6634a4ffe9b326ad1bb7c7b9d576178f752354d99d53470cd71a34f1b3"/>
+    </TargetEndpoints>
+</Manifest>

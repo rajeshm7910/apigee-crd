@@ -219,6 +219,10 @@ spec:
         spec:
           description: DeveloperAppSpec defines the desired state of DeveloperApp
           properties:
+            apiProducts:
+              items:
+                type: string
+              type: array
             attributes:
               items:
                 properties:
@@ -277,8 +281,6 @@ spec:
               type: array
             status:
               type: string
-          required:
-          - attributes
           type: object
         status:
           description: DeveloperAppStatus defines the observed state of DeveloperApp

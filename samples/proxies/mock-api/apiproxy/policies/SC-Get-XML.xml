@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><ServiceCallout async="false" continueOnError="false" enabled="true" name="SC-Get-XML">
+    <DisplayName>SC-Get-XML</DisplayName>
+    <Properties/>
+    <Request clearPayload="true" variable="myRequest">
+        <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    </Request>
+    <Response>calloutResponse</Response>
+    <LocalTargetConnection>
+        <Path>/v1/mock/xml</Path>
+    </LocalTargetConnection>
+</ServiceCallout>

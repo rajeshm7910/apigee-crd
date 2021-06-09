@@ -386,6 +386,11 @@ func (in *DeveloperAppSpec) DeepCopyInto(out *DeveloperAppSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.ApiProducts != nil {
+		in, out := &in.ApiProducts, &out.ApiProducts
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Credentials != nil {
 		in, out := &in.Credentials, &out.Credentials
 		*out = make([]CredentialsSpec, len(*in))
